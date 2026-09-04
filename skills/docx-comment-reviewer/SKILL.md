@@ -4,13 +4,13 @@ description: >-
   Extracts Review mode comments from a Word document (.docx), displays them for user approval, then applies the changes — either to a Python generation script that rebuilds the document, or directly to the Word document itself. Trigger phrases: "review comments in my document", "apply Word comments", "check document comments", "update document from comments", "I've added comments to the document".
 allowed-tools: execute write_file read_file edit_file grep glob
 metadata:
-  version: 1.1.0
+  version: 1.2.0
   tags: word docx comments review document-editing
 ---
 
 # Word Document Comment Reviewer
 
-Extract Review mode comments from a Word document, display them for user approval, then apply the changes — either to a Python generation script that rebuilds the document, or directly to the Word document itself.
+Extract Review mode comments from a Word document, display them for user approval, then apply the changes directly to the Word document. If the user explicitly mentions a Python generation script, apply changes to that script instead.
 
 ## Language
 
@@ -74,25 +74,33 @@ Wait for the user's response. Do not apply any changes yet.
 
 If the user asks to skip specific comments (e.g. "skip #2 and #4"), note which to apply and which to skip before continuing.
 
----
+**After the user confirms:** proceed directly to Step 4. Do not ask how to apply the changes.
 
-### Step 4 — Determine how to apply
-
-After the user approves, ask:
-
-"How should I apply these changes?
-
-- **Option A** — I have a Python script that generates this document (edit the script and regenerate)
-- **Option B** — Edit the Word document directly"
-
-Wait for their response.
-
-- **If Option A:** Ask for the full path to the generation script. Then proceed to Step 5A.
-- **If Option B:** Proceed to Step 5B.
+> **Exception:** If the user mentions they have a Python script that generates the document, proceed to Step 4A instead.
 
 ---
 
-### Step 5A — Apply changes to a generation script
+### Step 4 — Apply changes directly to the Word document
+
+For each approved comment, fully interpret the intent of the requested change. Write a targeted python-docx script to the scratch directory that:
+
+- Opens the .docx file
+- Locates the relevant paragraph(s) using the anchored text
+- **Handles run-split text:** Word often splits a phrase across multiple runs. Always check `para.text` (the full joined text) first to detect the match, then iterate `para.runs` to find and fix the specific run(s) containing the target text — do not rely on a single-run text match alone
+- Makes the change — text replacement, rewrite, insertion, deletion, or formatting adjustment
+- For complex comments (rewrites, new paragraphs, structural changes): interprets and applies them fully — do not flag these for manual attention
+- Uses American English spelling for any generated or inserted text (see Language section above)
+- Saves the document back to the same path
+
+Execute the script. Verify success. Fix any errors before moving to the next comment.
+
+Then proceed to Step 5.
+
+---
+
+### Step 4A — Apply changes to a generation script (only if user has one)
+
+Ask for the full path to the generation script.
 
 For each approved comment:
 
@@ -109,28 +117,11 @@ cd "<working_directory>" && python3 "<script_path>"
 
 If the script errors, diagnose and fix before proceeding.
 
-Then proceed to Step 6.
+Then proceed to Step 5.
 
 ---
 
-### Step 5B — Apply changes directly to the Word document
-
-For each approved comment, fully interpret the intent of the requested change. Write a targeted python-docx script to the scratch directory that:
-
-- Opens the .docx file
-- Locates the relevant paragraph(s) using the anchored text
-- Makes the change — text replacement, rewrite, insertion, deletion, or formatting adjustment
-- For complex comments (rewrites, new paragraphs, structural changes): interprets and applies them fully — do not flag these for manual attention
-- Uses American English spelling for any generated or inserted text (see Language section above)
-- Saves the document back to the same path
-
-Execute the script. Verify success. Fix any errors before moving to the next comment.
-
-Then proceed to Step 6.
-
----
-
-### Step 6 — Report back
+### Step 5 — Report back
 
 Provide a summary table of every comment processed:
 
@@ -148,8 +139,8 @@ Flag any comment that could not be applied automatically, explain why, and ask t
 | Situation | Action |
 |---|---|
 | No `comments.xml` in the docx | Tell the user the file has no saved comments. Ask them to save in Word and try again. |
-| Anchored text not found in generation script | Mark as "not automatically applied", report it in Step 6, ask user how to handle |
+| Anchored text not found in generation script | Mark as "not automatically applied", report it in Step 5, ask user how to handle |
 | Script execution error after regeneration | Show error, diagnose, fix the script, re-run |
 | python-docx not installed | Run `pip3 install --only-binary :all: python-docx` before proceeding |
-| Partial approval | Only apply approved comments. List skipped ones in the Step 6 report with status "Skipped" |
+| Partial approval | Only apply approved comments. List skipped ones in the Step 5 report with status "Skipped" |
 | File not found / bad zip | Report the error clearly and ask the user to verify the path |
