@@ -4,14 +4,22 @@ description: >-
   Extracts Review mode comments from a Word document (.docx), displays them for user approval, then applies the changes — either to a Python generation script that rebuilds the document, or directly to the Word document itself. Trigger phrases: "review comments in my document", "apply Word comments", "check document comments", "update document from comments", "I've added comments to the document".
 allowed-tools: execute write_file read_file edit_file grep glob
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   tags: word docx comments review document-editing
 ---
-
 
 # Word Document Comment Reviewer
 
 Extract Review mode comments from a Word document, display them for user approval, then apply the changes — either to a Python generation script that rebuilds the document, or directly to the Word document itself.
+
+## Language
+
+Always use **American English** spelling when generating or inserting any text into documents. Examples:
+- authorization (not authorisation)
+- color (not colour)
+- organize (not organise)
+- center (not centre)
+- behavior (not behaviour)
 
 ## Trigger
 
@@ -113,6 +121,7 @@ For each approved comment, fully interpret the intent of the requested change. W
 - Locates the relevant paragraph(s) using the anchored text
 - Makes the change — text replacement, rewrite, insertion, deletion, or formatting adjustment
 - For complex comments (rewrites, new paragraphs, structural changes): interprets and applies them fully — do not flag these for manual attention
+- Uses American English spelling for any generated or inserted text (see Language section above)
 - Saves the document back to the same path
 
 Execute the script. Verify success. Fix any errors before moving to the next comment.
